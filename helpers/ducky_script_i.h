@@ -48,6 +48,8 @@ struct BadUsbScript {
 
     FuriString* string_print;
     size_t string_print_pos;
+
+    const PlaceholderMap* placeholder_map; // optional, applied per line before parsing
 };
 
 uint16_t ducky_get_keycode(BadUsbScript* bad_usb, const char* param, bool accept_modifiers);

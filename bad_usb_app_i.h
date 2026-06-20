@@ -4,14 +4,16 @@
 #include "scenes/bad_usb_scene.h"
 #include "helpers/ducky_script.h"
 #include "helpers/bad_usb_hid.h"
+#include "helpers/placeholder.h"
 
 #include <gui/gui.h>
-#include <bad_usb_icons.h>
+#include <badusb_ph_icons.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 #include <dialogs/dialogs.h>
 #include <notification/notification_messages.h>
 #include <gui/modules/variable_item_list.h>
+#include <gui/modules/submenu.h>
 #include <gui/modules/text_input.h>
 #include <gui/modules/byte_input.h>
 #include <gui/modules/loading.h>
@@ -30,6 +32,9 @@
 #define BAD_USB_APP_SCRIPT_EXTENSION   ".txt"
 #define BAD_USB_APP_LAYOUT_EXTENSION   ".kl"
 
+#define BAD_USB_PH_CONFIG_NAME_MAX 32
+#define BAD_USB_PH_CONFIG_LIST_MAX 16
+
 typedef enum {
     BadUsbAppErrorNoFiles,
 } BadUsbAppError;
@@ -43,9 +48,20 @@ struct BadUsbApp {
     Widget* widget;
     Popup* popup;
     VariableItemList* var_item_list;
+    Submenu* submenu;
     TextInput* text_input;
     ByteInput* byte_input;
     Loading* loading;
+
+    // Placeholder feature state
+    PlaceholderMap placeholders; // resolved values applied during execution
+    FuriString* payload_basename; // basename of selected payload (config namespace)
+    size_t ph_input_idx; // current placeholder being entered (ph_input scene)
+    char ph_text_buf[PLACEHOLDER_VALUE_MAX]; // scratch buffer for text input
+    char ph_config_name_buf[32]; // scratch buffer for config name
+    char ph_header_buf[48]; // persistent header text for text input / submenu
+    FuriString* ph_config_names[16]; // configs listed in ph_config scene
+    size_t ph_config_count; // number of valid entries in ph_config_names
 
     char ble_name_buf[FURI_HAL_BT_ADV_NAME_LENGTH];
     uint8_t ble_mac_buf[GAP_MAC_ADDR_SIZE];
@@ -80,6 +96,7 @@ typedef enum {
     BadUsbAppViewByteInput,
     BadUsbAppViewTextInput,
     BadUsbAppViewLoading,
+    BadUsbAppViewPhConfig, // submenu: pick a placeholder config / manual entry
 } BadUsbAppView;
 
 void bad_usb_set_interface(BadUsbApp* app, BadUsbHidInterface interface);

@@ -36,12 +36,20 @@ bool bad_usb_scene_work_on_event(void* context, SceneManagerEvent event) {
                 bad_usb_script_close(app->bad_usb_script);
                 app->bad_usb_script = bad_usb_script_open(
                     app->file_path, &app->interface, &app->script_hid_cfg, false);
+                bad_usb_script_set_placeholders(app->bad_usb_script, &app->placeholders);
                 bad_usb_script_set_keyboard_layout(app->bad_usb_script, app->keyboard_layout);
             } else {
                 bad_usb_script_pause_resume(app->bad_usb_script);
             }
             consumed = true;
         }
+    } else if(event.type == SceneManagerEventTypeBack) {
+        // Skip the placeholder setup scenes on the way out: return straight to
+        // the file browser. If there is no browser in the stack (app launched
+        // directly with a file argument), fall through to default handling so
+        // the app exits instead of trapping the user.
+        consumed = scene_manager_search_and_switch_to_previous_scene(
+            app->scene_manager, BadUsbSceneFileSelect);
     } else if(event.type == SceneManagerEventTypeTick) {
         bad_usb_view_set_state(app->bad_usb_view, bad_usb_script_get_state(app->bad_usb_script));
         bad_usb_view_set_interface(app->bad_usb_view, app->interface);
@@ -66,6 +74,7 @@ void bad_usb_scene_work_on_enter(void* context) {
     // Interface and config are passed as pointers as ID/BLE_ID/BT_ID config can modify them
     app->bad_usb_script = bad_usb_script_open(
         app->file_path, &app->interface, &app->script_hid_cfg, first_script_load);
+    bad_usb_script_set_placeholders(app->bad_usb_script, &app->placeholders);
     bad_usb_script_set_keyboard_layout(app->bad_usb_script, app->keyboard_layout);
 
     FuriString* file_name;

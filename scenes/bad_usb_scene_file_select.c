@@ -1,5 +1,6 @@
 #include "../bad_usb_app_i.h"
 #include <storage/storage.h>
+#include <toolbox/path.h>
 
 static bool bad_usb_file_select(BadUsbApp* bad_usb) {
     furi_assert(bad_usb);
@@ -26,8 +27,21 @@ void bad_usb_scene_file_select_on_enter(void* context) {
     }
 
     if(bad_usb_file_select(bad_usb)) {
+        // RM uses the Work scene state as a "first script load" flag
         scene_manager_set_scene_state(bad_usb->scene_manager, BadUsbSceneWork, true);
-        scene_manager_next_scene(bad_usb->scene_manager, BadUsbSceneWork);
+
+        // Derive the per-payload config namespace and scan for [placeholder] tokens
+        path_extract_filename(bad_usb->file_path, bad_usb->payload_basename, true);
+        Storage* storage = furi_record_open(RECORD_STORAGE);
+        size_t ph_count = placeholder_scan_file(
+            storage, furi_string_get_cstr(bad_usb->file_path), &bad_usb->placeholders);
+        furi_record_close(RECORD_STORAGE);
+
+        if(ph_count > 0) {
+            scene_manager_next_scene(bad_usb->scene_manager, BadUsbScenePhConfig);
+        } else {
+            scene_manager_next_scene(bad_usb->scene_manager, BadUsbSceneWork);
+        }
     } else {
         view_dispatcher_stop(bad_usb->view_dispatcher);
     }

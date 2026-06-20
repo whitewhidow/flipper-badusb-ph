@@ -7,6 +7,7 @@ extern "C" {
 #include <furi.h>
 #include <furi_hal.h>
 #include "bad_usb_hid.h"
+#include "placeholder.h"
 
 typedef enum {
     BadUsbStateInit,
@@ -44,6 +45,10 @@ BadUsbScript* bad_usb_script_open(
 void bad_usb_script_close(BadUsbScript* bad_usb);
 
 void bad_usb_script_set_keyboard_layout(BadUsbScript* bad_usb, FuriString* layout_path);
+
+// Sets the placeholder map applied to every line before it is interpreted.
+// Pass NULL to disable substitution. The map must outlive the script.
+void bad_usb_script_set_placeholders(BadUsbScript* bad_usb, const PlaceholderMap* map);
 
 void bad_usb_script_start(BadUsbScript* bad_usb);
 

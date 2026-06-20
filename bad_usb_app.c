@@ -439,6 +439,9 @@ BadUsbApp* bad_usb_app_alloc(char* arg) {
 
     app->file_path = furi_string_alloc();
     app->keyboard_layout = furi_string_alloc();
+    placeholder_map_init(&app->placeholders);
+    app->payload_basename = furi_string_alloc();
+    app->ph_config_count = 0;
     if(arg && strlen(arg)) {
         furi_string_set(app->file_path, arg);
     }
@@ -479,6 +482,10 @@ BadUsbApp* bad_usb_app_alloc(char* arg) {
         app->view_dispatcher,
         BadUsbAppViewConfig,
         variable_item_list_get_view(app->var_item_list));
+
+    app->submenu = submenu_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, BadUsbAppViewPhConfig, submenu_get_view(app->submenu));
 
     app->bad_usb_view = bad_usb_view_alloc();
     view_dispatcher_add_view(
@@ -546,6 +553,10 @@ void bad_usb_app_free(BadUsbApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BadUsbAppViewConfig);
     variable_item_list_free(app->var_item_list);
 
+    // Placeholder config submenu
+    view_dispatcher_remove_view(app->view_dispatcher, BadUsbAppViewPhConfig);
+    submenu_free(app->submenu);
+
     // Text Input
     view_dispatcher_remove_view(app->view_dispatcher, BadUsbAppViewTextInput);
     text_input_free(app->text_input);
@@ -571,6 +582,11 @@ void bad_usb_app_free(BadUsbApp* app) {
 
     furi_string_free(app->file_path);
     furi_string_free(app->keyboard_layout);
+    furi_string_free(app->payload_basename);
+    placeholder_map_reset(&app->placeholders);
+    for(size_t i = 0; i < app->ph_config_count; i++) {
+        furi_string_free(app->ph_config_names[i]);
+    }
 
     free(app);
 }

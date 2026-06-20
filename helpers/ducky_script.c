@@ -392,6 +392,7 @@ static int32_t ducky_script_execute_next(BadUsbScript* bad_usb, File* script_fil
                 bad_usb->buf_len = bad_usb->buf_len + bad_usb->buf_start - (i + 1);
                 bad_usb->buf_start = i + 1;
                 furi_string_trim(bad_usb->line);
+                placeholder_apply(bad_usb->line, bad_usb->placeholder_map);
                 delay_val = ducky_parse_line(bad_usb, bad_usb->line);
                 if(delay_val == SCRIPT_STATE_NEXT_LINE) { // Empty line
                     return 0;
@@ -754,6 +755,7 @@ BadUsbScript* bad_usb_script_open(
     BadUsbScript* bad_usb = malloc(sizeof(BadUsbScript));
     bad_usb->file_path = furi_string_alloc();
     furi_string_set(bad_usb->file_path, file_path);
+    bad_usb->placeholder_map = NULL;
     bad_usb_script_set_default_keyboard_layout(bad_usb);
 
     bad_usb->st.state = BadUsbStateInit;
@@ -799,6 +801,11 @@ void bad_usb_script_set_keyboard_layout(BadUsbScript* bad_usb, FuriString* layou
         bad_usb_script_set_default_keyboard_layout(bad_usb);
     }
     storage_file_free(layout_file);
+}
+
+void bad_usb_script_set_placeholders(BadUsbScript* bad_usb, const PlaceholderMap* map) {
+    furi_assert(bad_usb);
+    bad_usb->placeholder_map = map;
 }
 
 void bad_usb_script_start_stop(BadUsbScript* bad_usb) {
