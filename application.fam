@@ -1,6 +1,6 @@
 App(
     appid="badusb_ph",
-    name="BBitBadUsb",
+    name="BBIT BadUSB with placeholders",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="bad_usb_app",
     stack_size=4 * 1024,

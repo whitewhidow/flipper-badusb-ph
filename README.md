@@ -1,4 +1,4 @@
-# BBitBadUsb — BadUSB with placeholders
+# BBIT BadUSB with placeholders
 
 A Flipper Zero BadUSB app that adds **`[placeholder]` token substitution** and
 **per-payload saved configs** on top of a full-featured BadUSB (USB + BLE,
