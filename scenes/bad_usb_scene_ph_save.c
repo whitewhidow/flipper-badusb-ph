@@ -8,10 +8,8 @@ typedef enum {
 
 #define PH_SAVE_EVENT_NAME_DONE 0x1000
 
-static void bad_usb_scene_ph_save_widget_callback(
-    GuiButtonType type,
-    InputType input_type,
-    void* context) {
+static void
+    bad_usb_scene_ph_save_widget_callback(GuiButtonType type, InputType input_type, void* context) {
     UNUSED(input_type);
     BadUsbApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, type);
@@ -75,8 +73,7 @@ bool bad_usb_scene_ph_save_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         } else if(event.event == GuiButtonTypeRight) {
             // Ask for a config name
-            scene_manager_set_scene_state(
-                app->scene_manager, BadUsbScenePhSave, PhSaveStateName);
+            scene_manager_set_scene_state(app->scene_manager, BadUsbScenePhSave, PhSaveStateName);
             bad_usb_scene_ph_save_show_name(app);
             consumed = true;
         } else if(event.event == PH_SAVE_EVENT_NAME_DONE) {

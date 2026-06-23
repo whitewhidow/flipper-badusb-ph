@@ -44,7 +44,8 @@ static void ph_config_dir(FuriString* out, const char* payload_basename) {
 
 static void
     ph_config_path(FuriString* out, const char* payload_basename, const char* config_name) {
-    furi_string_printf(out, "%s/%s/%s%s", PH_CONFIG_BASE, payload_basename, config_name, PH_CONFIG_EXT);
+    furi_string_printf(
+        out, "%s/%s/%s%s", PH_CONFIG_BASE, payload_basename, config_name, PH_CONFIG_EXT);
 }
 
 // --- lifecycle -------------------------------------------------------------
@@ -92,7 +93,8 @@ size_t placeholder_map_unresolved_count(const PlaceholderMap* map) {
 
 // A DuckyScript comment line ("REM ...") contributes no placeholders.
 static bool ph_line_is_comment(const char* s) {
-    while(*s == ' ' || *s == '\t') s++;
+    while(*s == ' ' || *s == '\t')
+        s++;
     if((s[0] == 'R' || s[0] == 'r') && (s[1] == 'E' || s[1] == 'e') &&
        (s[2] == 'M' || s[2] == 'm')) {
         char c = s[3];
@@ -169,8 +171,7 @@ void placeholder_apply(FuriString* line, const PlaceholderMap* map) {
     for(size_t i = 0; i < map->count; i++) {
         if(!map->entries[i].resolved) continue;
         snprintf(needle, sizeof(needle), "[%s]", furi_string_get_cstr(map->entries[i].name));
-        furi_string_replace_all_str(
-            line, needle, furi_string_get_cstr(map->entries[i].value));
+        furi_string_replace_all_str(line, needle, furi_string_get_cstr(map->entries[i].value));
     }
 }
 
@@ -230,8 +231,7 @@ bool placeholder_config_load(
         ok = true;
         for(size_t i = 0; i < map->count; i++) {
             flipper_format_rewind(fff);
-            if(flipper_format_read_string(
-                   fff, furi_string_get_cstr(map->entries[i].name), val)) {
+            if(flipper_format_read_string(fff, furi_string_get_cstr(map->entries[i].name), val)) {
                 furi_string_set(map->entries[i].value, val);
                 map->entries[i].resolved = true;
             }

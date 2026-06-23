@@ -301,7 +301,8 @@ static void bad_usb_load_settings(BadUsbApp* app) {
             }
 
             if(!flipper_format_read_uint32(fff, "ble_pairing", &temp_uint, 1) ||
-               temp_uint > GapPairingPinCodeVerifyYesNo) { // last valid; GapPairingCount is RM-only
+               temp_uint >
+                   GapPairingPinCodeVerifyYesNo) { // last valid; GapPairingCount is RM-only
                 temp_uint = GapPairingPinCodeVerifyYesNo;
                 flipper_format_rewind(fff);
             }
@@ -473,7 +474,8 @@ BadUsbApp* bad_usb_app_alloc(char* arg) {
     app->view_dispatcher = view_dispatcher_alloc();
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    view_dispatcher_enable_queue(app->view_dispatcher); // required on RM; deprecated no-op on stock
+    view_dispatcher_enable_queue(
+        app->view_dispatcher); // required on RM; deprecated no-op on stock
 #pragma GCC diagnostic pop
     app->scene_manager = scene_manager_alloc(&bad_usb_scene_handlers, app);
 

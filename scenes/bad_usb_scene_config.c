@@ -48,7 +48,8 @@ void bad_usb_scene_config_ble_persist_pairing_callback(VariableItem* item) {
     variable_item_set_current_value_text(item, value ? "ON" : "OFF");
 }
 
-const char* const ble_pairing_mode_names[GapPairingPinCodeVerifyYesNo + 1] = { // GapPairingCount is RM-only
+const char* const ble_pairing_mode_names[GapPairingPinCodeVerifyYesNo + 1] = {
+    // GapPairingCount is RM-only
     "YesNo",
     "PIN Type",
     "PIN Y/N",
@@ -120,7 +121,8 @@ static void draw_menu(BadUsbApp* bad_usb) {
         item = variable_item_list_add(
             var_item_list,
             "Pairing Mode",
-            GapPairingPinCodeVerifyYesNo + 1, // number of pairing modes; GapPairingCount is RM-only
+            GapPairingPinCodeVerifyYesNo +
+                1, // number of pairing modes; GapPairingCount is RM-only
             bad_usb_scene_config_ble_pairing_mode_callback,
             bad_usb);
         variable_item_set_current_value_index(item, ble_hid_cfg->pairing);

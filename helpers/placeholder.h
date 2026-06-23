@@ -8,9 +8,9 @@ extern "C" {
 #endif
 
 // Maximum number of distinct placeholders tracked for a single payload.
-#define PLACEHOLDER_MAX 16
+#define PLACEHOLDER_MAX       16
 // Maximum length of a placeholder name (between the brackets).
-#define PLACEHOLDER_NAME_MAX 32
+#define PLACEHOLDER_NAME_MAX  32
 // Maximum length of a substituted value.
 #define PLACEHOLDER_VALUE_MAX 128
 
