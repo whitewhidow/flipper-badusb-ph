@@ -1,23 +1,38 @@
-# Bad USB (placeholders)
+# BBitBadUsb — BadUSB with placeholders
 
-A Flipper Zero BadUSB app, forked from **RogueMaster** firmware's BadUSB, that adds
-**`[placeholder]` substitution** and **per-payload configs**. Write payloads with
-tokens like `[host]`, `[url]`, `[username]`; when you run one, the app asks you to
-fill those tokens in — either by picking a saved **config** or by **typing values
-manually** — and substitutes them before the DuckyScript executes.
+A Flipper Zero BadUSB app that adds **`[placeholder]` token substitution** and
+**per-payload saved configs** on top of a full-featured BadUSB (USB + BLE,
+configurable USB/BLE identity, NFC-assisted pairing).
 
-It installs as a **separate app** (`appid = badusb_ph`) and does not touch the stock
-BadUSB app. It is completely independent of the Android/Wear projects in this repo
-(different language, different build system).
+It installs as a **separate app** (`appid = badusb_ph`, shown under **Apps → USB**)
+and does not touch the built-in BadUSB. The source is **firmware-agnostic**: one tree
+builds as an external FAP for both official Flipper firmware and custom firmware
+(Unleashed / RogueMaster).
 
-> **Firmware note.** This is built on RogueMaster's BadUSB, because that's the
-> firmware on the target device. RogueMaster rewrote the HID layer (its own
-> `BadUsbHidConfig`, a custom `ble_profile_hid_ext`, USB unlock logic), so a FAP
-> built from *official* BadUSB sources compiles against RM but **HardFaults at HID
-> init on an RM device**. Building on the RM base avoids that. As a consequence the
-> code uses RM-specific APIs and is **not** buildable against official firmware /
-> submittable to the official catalog as-is. RM firmware is GPLv3; this fork
-> inherits that.
+## Features — by origin
+
+The app is three layers. This section spells out where each feature came from.
+
+### From stock Flipper BadUSB (baseline)
+- Run DuckyScript (`.txt`) payloads over **USB** or **BLE**
+- Keyboard layout selection
+- BLE pair / bond / unpair
+
+### Ported from RogueMaster's BadUSB → made to run on stock firmware
+These features existed in **RogueMaster's** BadUSB (not in stock). This app carries
+them and they were ported so they build and run against **official** firmware too:
+- **Configurable USB identity** — custom VID & PID
+- **Configurable USB name** — manufacturer & product strings
+- **Configurable BLE name** — the advertised device name
+- **Configurable BLE MAC** address
+- **NFC pairing emulation** — emulates an NFC tag to help a phone pair over BLE
+
+### Added by whitewhidow (original to this app)
+- **`[placeholder]` substitution** — write payloads with tokens like `[host]`,
+  `[url]`, `[username]`; the app prompts for them at run time and substitutes the
+  values before the DuckyScript executes
+- **Per-payload saved configs** — store named sets of placeholder values per payload
+  and reuse them, or enter values manually each run
 
 ## Placeholder syntax
 
@@ -57,71 +72,75 @@ STRING Logged in as [username]
   `/ext/apps_data/badusb_ph/configs/<payload_name>/<config_name>.cfg`
 - Plain `FlipperFormat` files (`name: value` per line) — editable by hand if you like.
 
+## Firmware compatibility
+
+One source builds as an external FAP for both official and custom firmware. Official
+firmware sits at the **lowest API minor** in the shared major (e.g. official 1.4.3 =
+API 87.1, Unleashed/RM = 87.x), and the FAP loader accepts a binary whose API minor is
+**≤** the firmware's. So **a build made against the official SDK is a universal binary
+that loads on official _and_ Unleashed / RogueMaster.** (A build made against the
+Unleashed SDK loads on Unleashed/RM but not on the lower-minor official.)
+
 ## Build & install
 
-A prebuilt FAP for RogueMaster (target `f7`, API 87.8) is provided at
-`dist/badusb_ph.fap` — just copy it to `/ext/apps/USB/` on the SD card (qFlipper or
-the storage helper) and it appears under **Apps → USB**.
-
-To rebuild from source you build it **in-tree against the RogueMaster firmware**
-(not `ufbt`, because it depends on RM's HID layer):
+Build with `ufbt` (no in-tree firmware build needed):
 
 ```bash
-# 1. Clone the RM firmware tag matching your device (see device_info: firmware_commit)
-git clone --depth 1 -b <RM-tag> --filter=blob:none \
-    https://github.com/RogueMaster/flipperzero-firmware-wPlugins.git rm-fw
-
-# 2. Drop this app in as a user app
-cp -r flipper_badusb_ph rm-fw/applications_user/badusb_ph
-
-# 3. Build (reuses RM's toolchain; ufbt's v39 toolchain can be symlinked to skip a download:
-#    ln -s ~/.ufbt/toolchain rm-fw/toolchain )
-cd rm-fw && ./fbt fap_badusb_ph
-#    -> build/f7-firmware-C/.extapps/badusb_ph.fap
+ufbt                       # builds dist/badusb_ph.fap against your current ufbt SDK
+ufbt launch                # build + upload + run on a connected Flipper
 ```
 
-Install over USB with the SDK's storage helper (replace `<PORT>`, e.g. `/dev/ttyACM0`):
+For the **universal / catalog** binary, build against the official release SDK in an
+isolated ufbt home (leaves your default `~/.ufbt` untouched):
 
 ```bash
-python3 ~/.ufbt/current/scripts/storage.py -p <PORT> send \
-    build/f7-firmware-C/.extapps/badusb_ph.fap /ext/apps/USB/badusb_ph.fap
+export UFBT_HOME=/tmp/ufbt-official
+ufbt update --channel=release      # official latest (e.g. 1.4.3 / API 87.1)
+ufbt                               # -> dist/badusb_ph.fap (API 87.1, loads everywhere in 87.x)
 ```
 
-> An earlier iteration of this app was `ufbt`-based and built against the official
-> SDK — it runs on official firmware but **crashes on RogueMaster**. This tree is the
-> RM-based version that runs on the target device.
+Install: copy `dist/badusb_ph.fap` to `/ext/apps/USB/` on the SD card (qFlipper or the
+SDK storage helper); it appears under **Apps → USB**.
+
+```bash
+python3 ~/.ufbt/current/scripts/storage.py -p auto send \
+    dist/badusb_ph.fap /ext/apps/USB/badusb_ph.fap
+```
 
 ### Keyboard layouts
 
-The app reuses the layouts that official firmware already installs at
-`/ext/badusb/assets/layouts`. If a layout file is missing it falls back to the
-built-in en-US map.
+The app reuses the layouts firmware installs at `/ext/badusb/assets/layouts`. If a
+layout file is missing it falls back to the built-in en-US map.
 
 ## Sample payload
 
-`sample_payloads/ph_demo.txt` is a benign demo (types text only) that uses
-`[host]`, `[port]`, `[url]` and `[username]`. Copy it to `/ext/badusb/` to try the
-flow:
+`sample_payloads/ph_demo.txt` is a benign demo (types text only) using `[host]`,
+`[port]`, `[url]` and `[username]`. Copy it to `/ext/badusb/` to try the flow:
 
 ```bash
-# with the official storage helper bundled in the SDK
-python3 ~/.ufbt/current/scripts/storage.py -p <PORT> send \
+python3 ~/.ufbt/current/scripts/storage.py -p auto send \
     sample_payloads/ph_demo.txt /ext/badusb/ph_demo.txt
 ```
 
-## What was changed vs RM's stock BadUSB
+## Branches
 
-- `helpers/placeholder.{c,h}` — new: line-based scanning (skips `REM` comment
-  lines), per-line substitution, and config load/save via `FlipperFormat`.
-- `helpers/ducky_script.c` — applies substitution to each line before it is parsed
-  (`placeholder_apply` in `ducky_script_execute_next`); added
-  `bad_usb_script_set_placeholders` + a `placeholder_map` field on the script.
-- `scenes/bad_usb_scene_ph_config.c`, `..._ph_input.c`, `..._ph_save.c` — new scenes
-  for choosing a config, entering values, and saving (reuse RM's `TextInput`; add a
-  `Submenu` view for the config picker).
-- `scenes/bad_usb_scene_file_select.c` — scans the chosen payload and branches into
-  the placeholder flow when tokens are present (otherwise behaves exactly like stock).
-- `scenes/bad_usb_scene_work.c` — Back returns straight to the file browser, and
-  falls through to normal exit when launched directly on a file.
-- `application.fam` — `appid=badusb_ph`, `EXTERNAL`; otherwise RM's BadUSB verbatim
-  (its own `images/`, `ble_profile`, 4 KB stack).
+- **`main`** — the app (this branch; default).
+- **`vendored-rm-baseline`** — pristine RogueMaster `bad_usb` snapshot the app was
+  forked from. `git diff vendored-rm-baseline..main` shows everything added here
+  (placeholder system + the portability work).
+
+## How it was made firmware-agnostic
+
+The RogueMaster baseline depended on RM/Unleashed-only firmware extensions. These were
+replaced with portable equivalents so the same source builds against official too:
+private `bt_i.h` access dropped (`suppress_pin_screen`, inline `pin_code`);
+`bt_get_status()` replaced by status cached from the public
+`bt_set_status_changed_callback`; `FURI_HAL_BT_ADV_NAME_LENGTH` →
+`FURI_HAL_VERSION_DEVICE_NAME_LENGTH`; `GapPairingCount` → `GapPairingPinCodeVerifyYesNo`;
+`#ifndef` fallbacks for `HID_VID/PID_DEFAULT` and `HID_MANUF_PRODUCT_NAME_LEN`; the
+required-on-RM `view_dispatcher_enable_queue` kept under a deprecation-suppress pragma.
+A BLE first-keystroke settle delay was also added to the connect-then-run path.
+
+## License
+
+Derived from RogueMaster firmware's BadUSB (GPLv3); this app inherits **GPLv3**.
