@@ -28,6 +28,19 @@ static bool bad_usb_app_back_event_callback(void* context) {
     return scene_manager_handle_back_event(app->scene_manager);
 }
 
+static void bad_usb_app_bt_status_changed_callback(BtStatus status, void* context) {
+    furi_assert(context);
+    BadUsbApp* app = context;
+    app->bt_connected = (status == BtStatusConnected);
+}
+
+void bad_usb_app_track_bt_status(BadUsbApp* app) {
+    // Stock firmware exposes no public BT status getter, so cache it from the status-changed
+    // callback. The BLE HID worker registers its own callback on the shared RECORD_BT singleton
+    // and clears it on stop, so we re-assert ours on Work-scene exit.
+    bt_set_status_changed_callback(app->bt, bad_usb_app_bt_status_changed_callback, app);
+}
+
 void bad_usb_nfc_pairing_stop(BadUsbApp* app) {
     if(app->nfc_listener) {
         nfc_listener_stop(app->nfc_listener);
@@ -231,7 +244,7 @@ static void bad_usb_app_tick_event_callback(void* context) {
     scene_manager_handle_tick_event(app->scene_manager);
 
     if(app->interface == BadUsbHidInterfaceBle) {
-        bool connected = (bt_get_status(app->bt) == BtStatusConnected);
+        bool connected = app->bt_connected;
         // FURI_LOG_I(TAG, "Tick: Connected=%d, Listener=%p", connected, app->nfc_listener);
         if(connected && app->nfc_listener) {
             FURI_LOG_I(TAG, "Stopping NFC (Connected)");
@@ -288,7 +301,7 @@ static void bad_usb_load_settings(BadUsbApp* app) {
             }
 
             if(!flipper_format_read_uint32(fff, "ble_pairing", &temp_uint, 1) ||
-               temp_uint >= GapPairingCount) {
+               temp_uint > GapPairingPinCodeVerifyYesNo) { // last valid; GapPairingCount is RM-only
                 temp_uint = GapPairingPinCodeVerifyYesNo;
                 flipper_format_rewind(fff);
             }
@@ -409,7 +422,7 @@ void bad_usb_set_interface(BadUsbApp* app, BadUsbHidInterface interface) {
             notification_message(app->notifications, &sequence_reset_blue);
         } else if(interface == BadUsbHidInterfaceBle) {
             FURI_LOG_I(TAG, "Set Interface: BLE");
-            if(bt_get_status(app->bt) != BtStatusConnected) {
+            if(!app->bt_connected) {
                 if(app->nfc_pairing_enabled) {
                     bad_usb_nfc_pairing_start(app);
                 }
@@ -451,13 +464,17 @@ BadUsbApp* bad_usb_app_alloc(char* arg) {
     // NFC Alloc
     app->nfc = nfc_alloc();
     app->bt = furi_record_open(RECORD_BT);
+    bad_usb_app_track_bt_status(app);
 
     app->gui = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->dialogs = furi_record_open(RECORD_DIALOGS);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    view_dispatcher_enable_queue(app->view_dispatcher); // required on RM; deprecated no-op on stock
+#pragma GCC diagnostic pop
     app->scene_manager = scene_manager_alloc(&bad_usb_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -514,7 +531,7 @@ BadUsbApp* bad_usb_app_alloc(char* arg) {
     }
 
     if(app->interface == BadUsbHidInterfaceBle) {
-        if(bt_get_status(app->bt) != BtStatusConnected) {
+        if(!app->bt_connected) {
             if(app->nfc_pairing_enabled) {
                 bad_usb_nfc_pairing_start(app);
             }
@@ -534,6 +551,7 @@ void bad_usb_app_free(BadUsbApp* app) {
     bad_usb_nfc_pairing_stop(app);
     notification_message(app->notifications, &sequence_reset_blue);
     nfc_free(app->nfc);
+    bt_set_status_changed_callback(app->bt, NULL, NULL);
     furi_record_close(RECORD_BT);
     app->bt = NULL;
 

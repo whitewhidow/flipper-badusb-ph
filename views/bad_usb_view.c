@@ -3,7 +3,7 @@
 #include <toolbox/path.h>
 #include <gui/elements.h>
 #include <badusb_ph_icons.h>
-#include <bt/bt_service/bt_i.h>
+#include <bt/bt_service/bt.h>
 
 #define MAX_NAME_LEN 64
 
@@ -37,10 +37,9 @@ static void bad_usb_draw_callback(Canvas* canvas, void* _model) {
     } else {
         furi_string_printf(disp_str, "(%s)", model->layout);
     }
-    if(model->interface == BadUsbHidInterfaceBle && model->bt->pin_code) {
-        furi_string_cat_printf(disp_str, "  PIN: %ld", model->bt->pin_code);
-    } else if(model->interface == BadUsbHidInterfaceBle) {
-        // Show NFC status in BLE mode
+    if(model->interface == BadUsbHidInterfaceBle) {
+        // Show NFC status in BLE mode (inline PIN display dropped: pin_code lives in the
+        // private bt_i.h struct, not in the public SDK; the firmware shows its own PIN screen)
         furi_string_cat_printf(disp_str, "  NFC: %s", model->nfc_active ? "Active" : "Inactive");
     } else {
         uint32_t e = model->state.elapsed;

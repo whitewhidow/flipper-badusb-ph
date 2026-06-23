@@ -7,7 +7,7 @@
  * FuriHalBleProfileParams for tuning profile behavior 
  **/
 typedef struct {
-    char name[FURI_HAL_BT_ADV_NAME_LENGTH]; /**< Full device name */
+    char name[FURI_HAL_VERSION_DEVICE_NAME_LENGTH]; /**< Full device name (== GapConfig.adv_name size; portable across fw) */
     uint8_t mac[GAP_MAC_ADDR_SIZE]; /**< Full device address */
     bool bonding; /**< Save paired devices */
     GapPairing pairing; /**< Pairing security method */

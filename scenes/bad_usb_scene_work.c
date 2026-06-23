@@ -96,5 +96,8 @@ void bad_usb_scene_work_on_enter(void* context) {
 }
 
 void bad_usb_scene_work_on_exit(void* context) {
-    UNUSED(context);
+    BadUsbApp* app = context;
+    // The BLE HID worker clears the shared BT status callback when a run stops; re-assert ours
+    // so cached connection status keeps updating for the NFC-pairing logic.
+    bad_usb_app_track_bt_status(app);
 }

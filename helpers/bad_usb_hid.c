@@ -1,10 +1,16 @@
 #include "bad_usb_hid.h"
 #include "ble_hid_ext_profile.h"
 #include <bt/bt_service/bt.h>
-#include <bt/bt_service/bt_i.h>
 #include <storage/storage.h>
 
 #define TAG "BadUSB HID"
+
+#ifndef HID_VID_DEFAULT // defined by RM/Unleashed; default to the same Logitech IDs on stock fw
+#define HID_VID_DEFAULT 0x046D
+#endif
+#ifndef HID_PID_DEFAULT
+#define HID_PID_DEFAULT 0xC529
+#endif
 
 #define HID_BT_KEYS_STORAGE_NAME ".bt_hid.keys"
 
@@ -156,7 +162,7 @@ void hid_ble_adjust_config(BadUsbHidConfig* hid_cfg) {
             furi_hal_version_get_name_ptr());
     }
 
-    if(hid_cfg->ble.pairing >= GapPairingCount) {
+    if(hid_cfg->ble.pairing > GapPairingPinCodeVerifyYesNo) { // GapPairingCount is RM-only
         hid_cfg->ble.pairing = GapPairingPinCodeVerifyYesNo;
     }
 }
@@ -164,7 +170,6 @@ void hid_ble_adjust_config(BadUsbHidConfig* hid_cfg) {
 void* hid_ble_init(BadUsbHidConfig* hid_cfg) {
     BleHidInstance* ble_hid = malloc(sizeof(BleHidInstance));
     ble_hid->bt = furi_record_open(RECORD_BT);
-    ble_hid->bt->suppress_pin_screen = true;
     bt_disconnect(ble_hid->bt);
 
     // Wait 2nd core to update nvm storage
@@ -195,7 +200,6 @@ void hid_ble_deinit(void* inst) {
     bt_keys_storage_set_default_path(ble_hid->bt);
 
     furi_check(bt_profile_restore_default(ble_hid->bt));
-    ble_hid->bt->suppress_pin_screen = false;
     furi_record_close(RECORD_BT);
     free(ble_hid);
 }

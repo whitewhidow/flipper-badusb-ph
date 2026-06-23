@@ -511,6 +511,23 @@ static int32_t bad_usb_worker(void* context) {
                 storage_file_seek(script_file, 0, true);
                 worker_state = BadUsbStateRunning;
                 bad_usb->st.elapsed = 0;
+                // BLE: the host HID channel needs a moment after connect, otherwise the
+                // first keystroke is dropped. USB enumerates instantly and needs no settle.
+                // Interruptible by stop/disconnect/close, same as the start-then-connect path.
+                if(*bad_usb->interface == BadUsbHidInterfaceBle) {
+                    uint32_t settle = furi_thread_flags_wait(
+                        WorkerEvtEnd | WorkerEvtDisconnect | WorkerEvtStartStop,
+                        FuriFlagWaitAny | FuriFlagNoClear,
+                        1500);
+                    if(settle & WorkerEvtEnd) {
+                        break;
+                    } else if(settle & WorkerEvtDisconnect) {
+                        worker_state = BadUsbStateNotConnected;
+                    } else if(settle & WorkerEvtStartStop) {
+                        worker_state = BadUsbStateIdle;
+                        furi_thread_flags_clear(WorkerEvtStartStop);
+                    }
+                }
             } else if(flags & WorkerEvtDisconnect) {
                 worker_state = BadUsbStateNotConnected; // Disconnected
             }

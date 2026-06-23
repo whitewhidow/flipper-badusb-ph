@@ -48,7 +48,7 @@ void bad_usb_scene_config_ble_persist_pairing_callback(VariableItem* item) {
     variable_item_set_current_value_text(item, value ? "ON" : "OFF");
 }
 
-const char* const ble_pairing_mode_names[GapPairingCount] = {
+const char* const ble_pairing_mode_names[GapPairingPinCodeVerifyYesNo + 1] = { // GapPairingCount is RM-only
     "YesNo",
     "PIN Type",
     "PIN Y/N",
@@ -73,11 +73,7 @@ void bad_usb_scene_config_ble_nfc_pairing_callback(VariableItem* item) {
 
     // Update NFC emulation state immediately
     if(bad_usb->interface == BadUsbHidInterfaceBle) {
-        Bt* bt = furi_record_open(RECORD_BT);
-        BtStatus bt_status = bt_get_status(bt);
-        furi_record_close(RECORD_BT);
-
-        if(bt_status != BtStatusConnected) {
+        if(!bad_usb->bt_connected) {
             if(value) {
                 // Enabled: start NFC pairing
                 bad_usb_nfc_pairing_start(bad_usb);
@@ -124,7 +120,7 @@ static void draw_menu(BadUsbApp* bad_usb) {
         item = variable_item_list_add(
             var_item_list,
             "Pairing Mode",
-            GapPairingCount,
+            GapPairingPinCodeVerifyYesNo + 1, // number of pairing modes; GapPairingCount is RM-only
             bad_usb_scene_config_ble_pairing_mode_callback,
             bad_usb);
         variable_item_set_current_value_index(item, ble_hid_cfg->pairing);
@@ -218,10 +214,7 @@ bool bad_usb_scene_config_on_event(void* context, SceneManagerEvent event) {
                     sizeof(bad_usb->user_hid_cfg.ble.mac));
                 // Regenerate NFC tag with new randomized MAC
                 if(bad_usb->interface == BadUsbHidInterfaceBle && bad_usb->nfc_pairing_enabled) {
-                    Bt* bt = furi_record_open(RECORD_BT);
-                    BtStatus bt_status = bt_get_status(bt);
-                    furi_record_close(RECORD_BT);
-                    if(bt_status != BtStatusConnected) {
+                    if(!bad_usb->bt_connected) {
                         bad_usb_nfc_pairing_stop(bad_usb);
                         bad_usb_nfc_pairing_start(bad_usb);
                     }
@@ -243,10 +236,7 @@ bool bad_usb_scene_config_on_event(void* context, SceneManagerEvent event) {
                     sizeof(bad_usb->user_hid_cfg.ble));
                 // Regenerate NFC tag with default MAC
                 if(bad_usb->interface == BadUsbHidInterfaceBle && bad_usb->nfc_pairing_enabled) {
-                    Bt* bt = furi_record_open(RECORD_BT);
-                    BtStatus bt_status = bt_get_status(bt);
-                    furi_record_close(RECORD_BT);
-                    if(bt_status != BtStatusConnected) {
+                    if(!bad_usb->bt_connected) {
                         bad_usb_nfc_pairing_stop(bad_usb);
                         bad_usb_nfc_pairing_start(bad_usb);
                     }
